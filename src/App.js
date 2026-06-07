@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const COLORS = [
   { dot: "#3B82F6", bg: "#EFF6FF", text: "#1E40AF", border: "#BFDBFE" },
@@ -21,23 +21,49 @@ function fdate(ds) {
   return new Date(ds + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-const INIT_PROJECTS = [
-  { id: "p1", name: "Website redesign", c: 0 },
-  { id: "p2", name: "Q3 planning", c: 1 },
-  { id: "p3", name: "Personal", c: 2 },
-];
-const INIT_TASKS = [
-  { id: "t1", title: "Finalize homepage wireframes", project: "p1", pri: "high", date: dstr(0), done: false, notes: "" },
-  { id: "t2", title: "Review copy deck with team", project: "p1", pri: "med", date: dstr(0), done: false, notes: "" },
-  { id: "t3", title: "Set OKRs for Q3", project: "p2", pri: "high", date: dstr(1), done: false, notes: "" },
-  { id: "t4", title: "Schedule stakeholder review", project: "p2", pri: "med", date: dstr(2), done: false, notes: "" },
-  { id: "t5", title: "Book dentist appointment", project: "p3", pri: "low", date: dstr(3), done: false, notes: "" },
-  { id: "t6", title: "Draft project timeline", project: "p1", pri: "med", date: dstr(-1), done: true, notes: "" },
-  { id: "t7", title: "Weekly team sync prep", project: "p2", pri: "med", date: dstr(1), done: false, notes: "" },
-  { id: "t8", title: "Update component library", project: "p1", pri: "low", date: dstr(4), done: false, notes: "" },
+// ── Default data: Mack's 4 real projects ─────────────────────────────────
+const DEFAULT_PROJECTS = [
+  { id: "p1", name: "STV Broadcast Template", c: 0 },
+  { id: "p2", name: "Brand System Kit", c: 1 },
+  { id: "p3", name: "Pascagoula Framework", c: 2 },
+  { id: "p4", name: "White Label Process Guide", c: 3 },
 ];
 
-// ── Shared styles ──────────────────────────────────────────────────────────
+const DEFAULT_TASKS = [
+  // STV Broadcast Template
+  { id: "t1",  title: "Generate Whisk photos (5 images)",         project: "p1", pri: "high", date: dstr(0), done: false, notes: "Hero, live preview, feature callouts, PDF preview, what's included" },
+  { id: "t2",  title: "Build zip package + LICENSE.txt",          project: "p1", pri: "high", date: dstr(0), done: true,  notes: "index.html + indie-videos.html + Setup Guide PDF + LICENSE.txt" },
+  { id: "t3",  title: "List on Etsy with copy + tags",            project: "p1", pri: "high", date: dstr(0), done: false, notes: "Title, description (all 6 sections), 13 tags, $18-24 price point" },
+  { id: "t4",  title: "Add listing to your own site",             project: "p1", pri: "med",  date: dstr(1), done: false, notes: "Price at $39-49 on site. Bundle upsell opportunity." },
+  // Brand System Kit
+  { id: "t5",  title: "Build Canva template x6",                  project: "p2", pri: "high", date: dstr(0), done: false, notes: "IG Story, TikTok Cover, YouTube Thumbnail, Facebook Cover, Pinterest Pin, Brand Style Tile" },
+  { id: "t6",  title: "Export PNG files for all 6 templates",     project: "p2", pri: "high", date: dstr(0), done: false, notes: "2000x2000 minimum, PNG format" },
+  { id: "t7",  title: "Generate Whisk photos (5 images)",         project: "p2", pri: "high", date: dstr(0), done: false, notes: "Hero flat lay, color palette, social templates preview, typography, what's included" },
+  { id: "t8",  title: "List on Etsy with copy + tags",            project: "p2", pri: "high", date: dstr(0), done: false, notes: "$24-29 Etsy / $49-59 site. 13 tags ready." },
+  // Pascagoula Framework
+  { id: "t9",  title: "Generate Whisk photos (5 images)",         project: "p3", pri: "high", date: dstr(0), done: false, notes: "Aerial grid, data stats, grid tool mockup, PDF flat lay, what's included" },
+  { id: "t10", title: "Package grid tool HTML file",              project: "p3", pri: "high", date: dstr(0), done: false, notes: "Include interactive city grid tool in zip with PDF framework" },
+  { id: "t11", title: "List on Etsy with copy + tags",           project: "p3", pri: "high", date: dstr(0), done: false, notes: "$39-49 Etsy / $79-99 site. Highest ticket item." },
+  { id: "t12", title: "Submit to Pascagoula Redevelopment Auth", project: "p3", pri: "low",  date: dstr(7), done: false, notes: "Use framework as intro to PRA + Opportunity Zone conversation" },
+  // White Label Process Guide
+  { id: "t13", title: "Generate Whisk photos (5 images)",         project: "p4", pri: "high", date: dstr(0), done: false, notes: "Creator desk hero, inside guide, sprint workflow, checklist graphic, what's included" },
+  { id: "t14", title: "List on Etsy with copy + tags",           project: "p4", pri: "high", date: dstr(0), done: false, notes: "$19-29 Etsy / $39-49 site. 13 tags ready." },
+  { id: "t15", title: "Create bundle listing (all 4 products)",  project: "p4", pri: "med",  date: dstr(1), done: false, notes: "Bundle price: $79-99. Position as the complete creator monetization kit." },
+  { id: "t16", title: "Share launch on TikTok + IG",             project: "p4", pri: "med",  date: dstr(1), done: false, notes: "Document the process — tonight's sprint IS the content" },
+];
+
+// ── localStorage helpers ──────────────────────────────────────────────────
+function load(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch { return fallback; }
+}
+function save(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+}
+
+// ── Shared styles ─────────────────────────────────────────────────────────
 const inp = { width: "100%", padding: "8px 10px", fontSize: 13, border: "1px solid #E2E8F0", borderRadius: 8, outline: "none", fontFamily: "inherit", color: "#1E293B", boxSizing: "border-box" };
 const sHead = { fontSize: 11, fontWeight: 600, color: "#94A3B8", margin: "4px 0 8px", letterSpacing: "0.3px" };
 const empty = { textAlign: "center", padding: "40px 20px", color: "#94A3B8", fontSize: 13 };
@@ -81,7 +107,7 @@ function Modal({ children, onClose }) {
   );
 }
 
-// ── Audio Player ───────────────────────────────────────────────────────────
+// ── Audio Player ──────────────────────────────────────────────────────────
 function AudioPlayer({ src, name }) {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
@@ -90,88 +116,37 @@ function AudioPlayer({ src, name }) {
   const [currentTime, setCurrent] = useState(0);
   const [speed, setSpeed] = useState(1);
   const [volume, setVolume] = useState(1);
-
-  function fmt(s) {
-    if (!s || isNaN(s)) return "0:00";
-    const m = Math.floor(s / 60), sec = Math.floor(s % 60);
-    return `${m}:${sec.toString().padStart(2, "0")}`;
-  }
-  function toggle() {
-    if (!audioRef.current) return;
-    if (playing) { audioRef.current.pause(); setPlaying(false); }
-    else { audioRef.current.play().catch(() => {}); setPlaying(true); }
-  }
-  function seek(e) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    if (audioRef.current) audioRef.current.currentTime = pct * duration;
-  }
-  function changeSpeed(s) {
-    setSpeed(s);
-    if (audioRef.current) audioRef.current.playbackRate = s;
-  }
-  function skip(sec) {
-    if (audioRef.current) audioRef.current.currentTime = Math.max(0, Math.min(duration, audioRef.current.currentTime + sec));
-  }
-  function changeVolume(v) {
-    setVolume(v);
-    if (audioRef.current) audioRef.current.volume = v;
-  }
-
+  function fmt(s) { if (!s || isNaN(s)) return "0:00"; const m = Math.floor(s / 60), sec = Math.floor(s % 60); return `${m}:${sec.toString().padStart(2, "0")}`; }
+  function toggle() { if (!audioRef.current) return; if (playing) { audioRef.current.pause(); setPlaying(false); } else { audioRef.current.play().catch(() => {}); setPlaying(true); } }
+  function seek(e) { const rect = e.currentTarget.getBoundingClientRect(); const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)); if (audioRef.current) audioRef.current.currentTime = pct * duration; }
+  function changeSpeed(s) { setSpeed(s); if (audioRef.current) audioRef.current.playbackRate = s; }
+  function skip(sec) { if (audioRef.current) audioRef.current.currentTime = Math.max(0, Math.min(duration, audioRef.current.currentTime + sec)); }
+  function changeVolume(v) { setVolume(v); if (audioRef.current) audioRef.current.volume = v; }
   return (
     <div style={{ background: "linear-gradient(135deg,#EFF6FF 0%,#F0FDF4 100%)", border: "1px solid #BFDBFE", borderRadius: 14, padding: "16px 18px" }}>
       <audio ref={audioRef} src={src}
         onTimeUpdate={() => { if (audioRef.current) { setCurrent(audioRef.current.currentTime); setProgress(audioRef.current.currentTime / audioRef.current.duration * 100 || 0); } }}
         onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
         onEnded={() => setPlaying(false)} />
-
-      {/* Progress bar */}
       <div onClick={seek} style={{ height: 6, background: "#DBEAFE", borderRadius: 3, cursor: "pointer", marginBottom: 14, position: "relative" }}>
         <div style={{ width: `${progress}%`, height: "100%", background: "linear-gradient(90deg,#3B82F6,#6366F1)", borderRadius: 3, transition: "width .1s" }} />
         <div style={{ position: "absolute", top: "50%", left: `${progress}%`, transform: "translate(-50%,-50%)", width: 12, height: 12, borderRadius: "50%", background: "#3B82F6", border: "2px solid #fff", boxShadow: "0 1px 4px rgba(59,130,246,.4)", pointerEvents: "none" }} />
       </div>
-
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        {/* Skip back 10s */}
-        <button onClick={() => skip(-10)} title="Back 10s"
-          style={{ border: "none", background: "rgba(59,130,246,.1)", borderRadius: "50%", width: 30, height: 30, cursor: "pointer", color: "#3B82F6", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          ↩
+        <button onClick={() => skip(-10)} style={{ border: "none", background: "rgba(59,130,246,.1)", borderRadius: "50%", width: 30, height: 30, cursor: "pointer", color: "#3B82F6", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>↩</button>
+        <button onClick={toggle} style={{ width: 38, height: 38, borderRadius: "50%", background: "#3B82F6", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px rgba(59,130,246,.35)" }}>
+          {playing ? <svg width="12" height="13" viewBox="0 0 12 13" fill="white"><rect x="0" y="0" width="4" height="13" rx="1.5" /><rect x="8" y="0" width="4" height="13" rx="1.5" /></svg> : <svg width="11" height="13" viewBox="0 0 11 13" fill="white"><path d="M1.5 1l8 5.5-8 5.5V1z" /></svg>}
         </button>
-
-        {/* Play / Pause */}
-        <button onClick={toggle}
-          style={{ width: 38, height: 38, borderRadius: "50%", background: "#3B82F6", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px rgba(59,130,246,.35)" }}>
-          {playing
-            ? <svg width="12" height="13" viewBox="0 0 12 13" fill="white"><rect x="0" y="0" width="4" height="13" rx="1.5" /><rect x="8" y="0" width="4" height="13" rx="1.5" /></svg>
-            : <svg width="11" height="13" viewBox="0 0 11 13" fill="white"><path d="M1.5 1l8 5.5-8 5.5V1z" /></svg>}
-        </button>
-
-        {/* Skip forward 10s */}
-        <button onClick={() => skip(10)} title="Forward 10s"
-          style={{ border: "none", background: "rgba(59,130,246,.1)", borderRadius: "50%", width: 30, height: 30, cursor: "pointer", color: "#3B82F6", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          ↪
-        </button>
-
-        {/* Time */}
+        <button onClick={() => skip(10)} style={{ border: "none", background: "rgba(59,130,246,.1)", borderRadius: "50%", width: 30, height: 30, cursor: "pointer", color: "#3B82F6", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>↪</button>
         <span style={{ fontSize: 12, color: "#475569", minWidth: 80 }}>{fmt(currentTime)} / {fmt(duration)}</span>
-
-        {/* Spacer */}
         <div style={{ flex: 1 }} />
-
-        {/* Volume */}
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <span style={{ fontSize: 12, color: "#64748B" }}>🔈</span>
-          <input type="range" min="0" max="1" step="0.05" value={volume} onChange={e => changeVolume(parseFloat(e.target.value))}
-            style={{ width: 60, accentColor: "#3B82F6", cursor: "pointer" }} />
+          <input type="range" min="0" max="1" step="0.05" value={volume} onChange={e => changeVolume(parseFloat(e.target.value))} style={{ width: 60, accentColor: "#3B82F6", cursor: "pointer" }} />
         </div>
-
-        {/* Speed */}
         <div style={{ display: "flex", gap: 3 }}>
           {[0.5, 1, 1.5, 2].map(s => (
-            <button key={s} onClick={() => changeSpeed(s)}
-              style={{ padding: "3px 7px", fontSize: 11, border: `1px solid ${speed === s ? "#3B82F6" : "#E2E8F0"}`, borderRadius: 5, cursor: "pointer", background: speed === s ? "#EFF6FF" : "#fff", color: speed === s ? "#3B82F6" : "#64748B", fontWeight: speed === s ? 600 : 400 }}>
-              {s}×
-            </button>
+            <button key={s} onClick={() => changeSpeed(s)} style={{ padding: "3px 7px", fontSize: 11, border: `1px solid ${speed === s ? "#3B82F6" : "#E2E8F0"}`, borderRadius: 5, cursor: "pointer", background: speed === s ? "#EFF6FF" : "#fff", color: speed === s ? "#3B82F6" : "#64748B", fontWeight: speed === s ? 600 : 400 }}>{s}×</button>
           ))}
         </div>
       </div>
@@ -179,9 +154,40 @@ function AudioPlayer({ src, name }) {
   );
 }
 
-// ── Scripts & Recordings View ──────────────────────────────────────────────
+function EditableTitle({ value, onChange }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  if (editing) return (
+    <input autoFocus value={draft} onChange={e => setDraft(e.target.value)}
+      onBlur={() => { onChange(draft || value); setEditing(false); }}
+      onKeyDown={e => { if (e.key === "Enter") { onChange(draft || value); setEditing(false); } if (e.key === "Escape") { setDraft(value); setEditing(false); } }}
+      style={{ fontSize: 18, fontWeight: 600, color: "#0F172A", border: "none", outline: "none", borderBottom: "2px solid #3B82F6", background: "transparent", width: "100%", fontFamily: "inherit", padding: "0 0 2px" }} />
+  );
+  return <div onClick={() => { setDraft(value); setEditing(true); }} style={{ fontSize: 18, fontWeight: 600, color: "#0F172A", cursor: "text", paddingBottom: 2 }} title="Click to rename">{value}</div>;
+}
+
+function LinkCard({ src, platform, icon }) {
+  const [copied, setCopied] = useState(false);
+  function copy() { navigator.clipboard?.writeText(src).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }); }
+  return (
+    <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 14, padding: "18px 20px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <span style={{ fontSize: 20 }}>{icon}</span>
+        <div><div style={{ fontSize: 13, fontWeight: 600, color: "#1E293B" }}>{platform}</div><div style={{ fontSize: 11, color: "#94A3B8" }}>External recording</div></div>
+      </div>
+      <div style={{ fontSize: 12, color: "#64748B", wordBreak: "break-all", background: "#fff", border: "1px solid #F1F5F9", borderRadius: 8, padding: "9px 12px", marginBottom: 14, lineHeight: 1.5 }}>{src}</div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <a href={src} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#3B82F6", color: "#fff", borderRadius: 9, fontSize: 13, fontWeight: 500, textDecoration: "none" }}>Open recording ↗</a>
+        <button onClick={copy} style={{ padding: "8px 16px", fontSize: 13, border: "1px solid #E2E8F0", borderRadius: 9, cursor: "pointer", background: "#fff", color: copied ? "#10B981" : "#475569" }}>{copied ? "✓ Copied" : "Copy link"}</button>
+      </div>
+      <div style={{ marginTop: 12, fontSize: 11, color: "#94A3B8", lineHeight: 1.6 }}>Supports Google Drive · Dropbox · Loom · Zoom · Otter.ai · YouTube · Direct MP3/MP4 URLs</div>
+    </div>
+  );
+}
+
+// ── Scripts View ──────────────────────────────────────────────────────────
 function ScriptsView({ recordings, setRecordings }) {
-  const [tab, setTab] = useState("upload"); // "upload" | "link"
+  const [tab, setTab] = useState("upload");
   const [linkInput, setLinkInput] = useState("");
   const [linkName, setLinkName] = useState("");
   const [activeRec, setActiveRec] = useState(null);
@@ -192,49 +198,25 @@ function ScriptsView({ recordings, setRecordings }) {
   const fileRef = useRef(null);
 
   function addLink() {
-    const url = linkInput.trim();
-    if (!url) return;
+    const url = linkInput.trim(); if (!url) return;
     const name = linkName.trim() || url.split("/").pop()?.split("?")[0] || "Recording";
     const rec = { id: "r" + Date.now(), name, src: url, type: "link", notes: "", date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) };
-    setRecordings(rs => [rec, ...rs]);
-    setActiveRec(rec.id);
-    setLinkInput(""); setLinkName("");
+    setRecordings(rs => [rec, ...rs]); setActiveRec(rec.id); setLinkInput(""); setLinkName("");
   }
-
   function addFile(file) {
     if (!file || !file.type.match(/audio|video/)) return;
     const src = URL.createObjectURL(file);
     const rec = { id: "r" + Date.now(), name: file.name.replace(/\.[^.]+$/, ""), src, type: "file", notes: "", date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }), fileType: file.type, fileSize: (file.size / 1024 / 1024).toFixed(1) + " MB" };
-    setRecordings(rs => [rec, ...rs]);
-    setActiveRec(rec.id);
+    setRecordings(rs => [rec, ...rs]); setActiveRec(rec.id);
   }
-
   function handleFile(e) { addFile(e.target.files[0]); e.target.value = ""; }
-
-  function handleDrop(e) {
-    e.preventDefault(); setDragOver(false);
-    const file = e.dataTransfer.files[0];
-    addFile(file);
-  }
-
-  function deleteRec(id) {
-    setRecordings(rs => rs.filter(r => r.id !== id));
-    if (activeRec === id) setActiveRec(null);
-  }
-
-  function saveNotes(id) {
-    setRecordings(rs => rs.map(r => r.id === id ? { ...r, notes: notesDraft } : r));
-    setEditNotes(false);
-  }
-
-  function renameRec(id, name) {
-    setRecordings(rs => rs.map(r => r.id === id ? { ...r, name } : r));
-  }
-
+  function handleDrop(e) { e.preventDefault(); setDragOver(false); addFile(e.dataTransfer.files[0]); }
+  function deleteRec(id) { setRecordings(rs => rs.filter(r => r.id !== id)); if (activeRec === id) setActiveRec(null); }
+  function saveNotes(id) { setRecordings(rs => rs.map(r => r.id === id ? { ...r, notes: notesDraft } : r)); setEditNotes(false); }
+  function renameRec(id, name) { setRecordings(rs => rs.map(r => r.id === id ? { ...r, name } : r)); }
   const active = recordings.find(r => r.id === activeRec);
   const filtered = recordings.filter(r => r.name.toLowerCase().includes(search.toLowerCase()) || r.notes?.toLowerCase().includes(search.toLowerCase()));
 
-  // Detect likely platform from URL
   function getPlatformLabel(url) {
     if (!url) return "Link";
     if (url.includes("drive.google")) return "Google Drive";
@@ -248,7 +230,6 @@ function ScriptsView({ recordings, setRecordings }) {
     if (url.match(/\.(mp4|mov|webm|mkv)(\?|$)/i)) return "Direct video";
     return "External link";
   }
-
   function getPlatformIcon(url) {
     if (!url) return "🔗";
     if (url.includes("drive.google")) return "📁";
@@ -262,33 +243,18 @@ function ScriptsView({ recordings, setRecordings }) {
 
   return (
     <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}>
-
-      {/* ── Left panel: library ──────────────────────────────────── */}
       <div style={{ width: 270, borderRight: "1px solid #F1F5F9", display: "flex", flexDirection: "column", flexShrink: 0, background: "#FAFAFA" }}>
-
-        {/* Add section */}
         <div style={{ padding: "16px 14px", borderBottom: "1px solid #F1F5F9", background: "#fff" }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "#CBD5E1", letterSpacing: "0.8px", marginBottom: 12 }}>ADD RECORDING</div>
-
-          {/* Tab switcher */}
           <div style={{ display: "flex", background: "#F8FAFC", borderRadius: 8, padding: 3, marginBottom: 12, border: "1px solid #F1F5F9" }}>
             {[["upload", "⬆ Upload file"], ["link", "🔗 Paste link"]].map(([t, l]) => (
-              <button key={t} onClick={() => setTab(t)}
-                style={{ flex: 1, padding: "6px 4px", fontSize: 12, border: tab === t ? "1px solid #E2E8F0" : "none", background: tab === t ? "#fff" : "transparent", borderRadius: 6, cursor: "pointer", color: tab === t ? "#1E293B" : "#64748B", fontWeight: tab === t ? 500 : 400 }}>
-                {l}
-              </button>
+              <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: "6px 4px", fontSize: 12, border: tab === t ? "1px solid #E2E8F0" : "none", background: tab === t ? "#fff" : "transparent", borderRadius: 6, cursor: "pointer", color: tab === t ? "#1E293B" : "#64748B", fontWeight: tab === t ? 500 : 400 }}>{l}</button>
             ))}
           </div>
-
           {tab === "upload" && (
             <>
-              {/* Drop zone */}
               <input ref={fileRef} type="file" accept="audio/*,video/*,.mp3,.wav,.m4a,.ogg,.mp4,.mov,.webm" style={{ display: "none" }} onChange={handleFile} />
-              <div
-                onClick={() => fileRef.current.click()}
-                onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={handleDrop}
+              <div onClick={() => fileRef.current.click()} onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onDrop={handleDrop}
                 style={{ padding: "20px 12px", border: `2px dashed ${dragOver ? "#3B82F6" : "#CBD5E1"}`, borderRadius: 10, cursor: "pointer", background: dragOver ? "#EFF6FF" : "#F8FAFC", textAlign: "center", transition: "all .15s" }}>
                 <div style={{ fontSize: 24, marginBottom: 6 }}>🎙</div>
                 <div style={{ fontSize: 12, fontWeight: 500, color: "#475569", marginBottom: 3 }}>Click or drag & drop</div>
@@ -296,28 +262,22 @@ function ScriptsView({ recordings, setRecordings }) {
               </div>
             </>
           )}
-
           {tab === "link" && (
             <div>
-              <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 6 }}>Works with Google Drive, Dropbox, Loom, Zoom, Otter.ai, direct MP3 links, and more</div>
-              <input value={linkName} onChange={e => setLinkName(e.target.value)} placeholder="Label (e.g. Client call — Jun 5)" style={{ ...inp, marginBottom: 7, fontSize: 12 }} />
+              <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 6 }}>Works with Google Drive, Dropbox, Loom, Zoom, Otter.ai, direct MP3 links</div>
+              <input value={linkName} onChange={e => setLinkName(e.target.value)} placeholder="Label (e.g. TikTok script — Jun 7)" style={{ ...inp, marginBottom: 7, fontSize: 12 }} />
               <div style={{ display: "flex", gap: 6 }}>
                 <input value={linkInput} onChange={e => setLinkInput(e.target.value)} onKeyDown={e => e.key === "Enter" && addLink()} placeholder="https://…" style={{ ...inp, fontSize: 12, flex: 1 }} />
-                <button onClick={addLink} style={{ padding: "7px 11px", fontSize: 12, border: "none", borderRadius: 8, cursor: "pointer", background: "#3B82F6", color: "#fff", fontWeight: 500, whiteSpace: "nowrap" }}>Add</button>
+                <button onClick={addLink} style={{ padding: "7px 11px", fontSize: 12, border: "none", borderRadius: 8, cursor: "pointer", background: "#3B82F6", color: "#fff", fontWeight: 500 }}>Add</button>
               </div>
             </div>
           )}
         </div>
-
-        {/* Search */}
         {recordings.length > 0 && (
           <div style={{ padding: "10px 12px", borderBottom: "1px solid #F1F5F9", background: "#fff" }}>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search recordings…"
-              style={{ ...inp, fontSize: 12, background: "#F8FAFC" }} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search recordings…" style={{ ...inp, fontSize: 12, background: "#F8FAFC" }} />
           </div>
         )}
-
-        {/* Recording list */}
         <div style={{ flex: 1, overflowY: "auto", padding: "8px" }}>
           {filtered.length === 0 && (
             <div style={{ textAlign: "center", padding: "28px 12px", color: "#94A3B8", fontSize: 12, lineHeight: 1.7 }}>
@@ -333,24 +293,18 @@ function ScriptsView({ recordings, setRecordings }) {
                   <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>{r.type === "file" ? "🎙" : getPlatformIcon(r.src)}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: isActive ? "#1E40AF" : "#1E293B", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</div>
-                    <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>
-                      {r.date} · {r.type === "file" ? (r.fileType?.split("/")[1]?.toUpperCase() || "Audio") + (r.fileSize ? ` · ${r.fileSize}` : "") : getPlatformLabel(r.src)}
-                    </div>
+                    <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>{r.date} · {r.type === "file" ? (r.fileType?.split("/")[1]?.toUpperCase() || "Audio") + (r.fileSize ? ` · ${r.fileSize}` : "") : getPlatformLabel(r.src)}</div>
                     {r.notes && <div style={{ fontSize: 11, color: "#64748B", marginTop: 4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{r.notes}</div>}
                   </div>
                   <button onClick={e => { e.stopPropagation(); deleteRec(r.id); }}
                     style={{ border: "none", background: "transparent", cursor: "pointer", color: "#CBD5E1", fontSize: 16, padding: "0 2px", lineHeight: 1, flexShrink: 0 }}
-                    onMouseEnter={e => e.target.style.color = "#EF4444"} onMouseLeave={e => e.target.style.color = "#CBD5E1"}>
-                    ×
-                  </button>
+                    onMouseEnter={e => e.target.style.color = "#EF4444"} onMouseLeave={e => e.target.style.color = "#CBD5E1"}>×</button>
                 </div>
               </div>
             );
           })}
         </div>
       </div>
-
-      {/* ── Right panel: player + script ───────────────────────── */}
       <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
         {!active ? (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#94A3B8", padding: 40 }}>
@@ -360,28 +314,14 @@ function ScriptsView({ recordings, setRecordings }) {
           </div>
         ) : (
           <div style={{ padding: "22px 28px", flex: 1, display: "flex", flexDirection: "column", gap: 0 }}>
-
-            {/* Header */}
             <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 18 }}>
               <div style={{ flex: 1 }}>
                 <EditableTitle value={active.name} onChange={name => renameRec(active.id, name)} />
-                <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 3 }}>
-                  {active.date} · {active.type === "file" ? (active.fileType?.split("/")[1]?.toUpperCase() || "Audio") + (active.fileSize ? ` · ${active.fileSize}` : "") : getPlatformLabel(active.src)}
-                </div>
+                <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 3 }}>{active.date} · {active.type === "file" ? (active.fileType?.split("/")[1]?.toUpperCase() || "Audio") + (active.fileSize ? ` · ${active.fileSize}` : "") : getPlatformLabel(active.src)}</div>
               </div>
             </div>
-
-            {/* Player or link card */}
-            {active.type === "file" ? (
-              <AudioPlayer key={active.id} src={active.src} name={active.name} />
-            ) : (
-              <LinkCard src={active.src} platform={getPlatformLabel(active.src)} icon={getPlatformIcon(active.src)} />
-            )}
-
-            {/* Divider */}
+            {active.type === "file" ? <AudioPlayer key={active.id} src={active.src} name={active.name} /> : <LinkCard src={active.src} platform={getPlatformLabel(active.src)} icon={getPlatformIcon(active.src)} />}
             <div style={{ height: 1, background: "#F1F5F9", margin: "22px 0" }} />
-
-            {/* Script / Notes */}
             <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -390,49 +330,32 @@ function ScriptsView({ recordings, setRecordings }) {
                   {active.notes && <span style={{ fontSize: 11, background: "#F0FDF4", color: "#065F46", border: "1px solid #A7F3D0", borderRadius: 8, padding: "1px 7px" }}>Saved</span>}
                 </div>
                 {!editNotes ? (
-                  <button onClick={() => { setNotesDraft(active.notes || ""); setEditNotes(true); }}
-                    style={{ fontSize: 12, padding: "5px 12px", border: "1px solid #E2E8F0", borderRadius: 7, cursor: "pointer", background: "#fff", color: "#475569", display: "flex", alignItems: "center", gap: 5 }}>
-                    ✏️ Edit
-                  </button>
+                  <button onClick={() => { setNotesDraft(active.notes || ""); setEditNotes(true); }} style={{ fontSize: 12, padding: "5px 12px", border: "1px solid #E2E8F0", borderRadius: 7, cursor: "pointer", background: "#fff", color: "#475569" }}>✏️ Edit</button>
                 ) : (
                   <div style={{ display: "flex", gap: 7 }}>
-                    <button onClick={() => setEditNotes(false)}
-                      style={{ fontSize: 12, padding: "5px 12px", border: "1px solid #E2E8F0", borderRadius: 7, cursor: "pointer", background: "#fff", color: "#64748B" }}>
-                      Cancel
-                    </button>
-                    <button onClick={() => saveNotes(active.id)}
-                      style={{ fontSize: 12, padding: "5px 12px", border: "none", borderRadius: 7, cursor: "pointer", background: "#3B82F6", color: "#fff", fontWeight: 500 }}>
-                      Save
-                    </button>
+                    <button onClick={() => setEditNotes(false)} style={{ fontSize: 12, padding: "5px 12px", border: "1px solid #E2E8F0", borderRadius: 7, cursor: "pointer", background: "#fff", color: "#64748B" }}>Cancel</button>
+                    <button onClick={() => saveNotes(active.id)} style={{ fontSize: 12, padding: "5px 12px", border: "none", borderRadius: 7, cursor: "pointer", background: "#3B82F6", color: "#fff", fontWeight: 500 }}>Save</button>
                   </div>
                 )}
               </div>
-
-              {/* Hint chips when empty */}
               {!active.notes && !editNotes && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
                   {["Add timestamps", "Paste script", "Key takeaways", "Action items", "Follow-ups"].map(hint => (
-                    <button key={hint} onClick={() => { setNotesDraft(hint + ":\n"); setEditNotes(true); }}
-                      style={{ fontSize: 11, padding: "4px 10px", border: "1px solid #E2E8F0", borderRadius: 20, cursor: "pointer", background: "#F8FAFC", color: "#64748B" }}>
-                      + {hint}
-                    </button>
+                    <button key={hint} onClick={() => { setNotesDraft(hint + ":\n"); setEditNotes(true); }} style={{ fontSize: 11, padding: "4px 10px", border: "1px solid #E2E8F0", borderRadius: 20, cursor: "pointer", background: "#F8FAFC", color: "#64748B" }}>+ {hint}</button>
                   ))}
                 </div>
               )}
-
               {editNotes ? (
                 <textarea value={notesDraft} onChange={e => setNotesDraft(e.target.value)} autoFocus
-                  placeholder={"Paste your script here, add timestamps (e.g. 0:30 – topic), action items, key quotes…\n\nExample:\n0:00 – Intro\n1:45 – Main discussion\n\nAction items:\n- Follow up with client by Friday\n- Share recording link with team"}
+                  placeholder={"Paste your script here, add timestamps, action items, key quotes…\n\nExample:\n0:00 – Intro\n1:45 – Main point\n\nAction items:\n- Follow up by Friday"}
                   style={{ flex: 1, minHeight: 220, padding: "14px 16px", fontSize: 13, border: "1px solid #CBD5E1", borderRadius: 12, outline: "none", resize: "vertical", fontFamily: "inherit", color: "#1E293B", lineHeight: 1.8, boxSizing: "border-box", background: "#fff" }} />
               ) : (
-                <div
-                  onClick={() => { setNotesDraft(active.notes || ""); setEditNotes(true); }}
+                <div onClick={() => { setNotesDraft(active.notes || ""); setEditNotes(true); }}
                   style={{ flex: 1, minHeight: 160, padding: "14px 16px", background: active.notes ? "#fff" : "#F8FAFC", border: "1px solid #F1F5F9", borderRadius: 12, fontSize: 13, color: active.notes ? "#1E293B" : "#94A3B8", lineHeight: 1.8, whiteSpace: "pre-wrap", cursor: "text", wordBreak: "break-word" }}>
                   {active.notes || "Click to add a script, timestamps, or notes for this recording…"}
                 </div>
               )}
             </div>
-
           </div>
         )}
       </div>
@@ -440,77 +363,35 @@ function ScriptsView({ recordings, setRecordings }) {
   );
 }
 
-function EditableTitle({ value, onChange }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-  if (editing) return (
-    <input autoFocus value={draft} onChange={e => setDraft(e.target.value)}
-      onBlur={() => { onChange(draft || value); setEditing(false); }}
-      onKeyDown={e => { if (e.key === "Enter") { onChange(draft || value); setEditing(false); } if (e.key === "Escape") { setDraft(value); setEditing(false); } }}
-      style={{ fontSize: 18, fontWeight: 600, color: "#0F172A", border: "none", outline: "none", borderBottom: "2px solid #3B82F6", background: "transparent", width: "100%", fontFamily: "inherit", padding: "0 0 2px" }} />
-  );
-  return (
-    <div onClick={() => { setDraft(value); setEditing(true); }}
-      style={{ fontSize: 18, fontWeight: 600, color: "#0F172A", cursor: "text", paddingBottom: 2 }}
-      title="Click to rename">
-      {value}
-    </div>
-  );
-}
-
-function LinkCard({ src, platform, icon }) {
-  const [copied, setCopied] = useState(false);
-  function copy() {
-    navigator.clipboard?.writeText(src).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
-  }
-  return (
-    <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 14, padding: "18px 20px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <span style={{ fontSize: 20 }}>{icon}</span>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "#1E293B" }}>{platform}</div>
-          <div style={{ fontSize: 11, color: "#94A3B8" }}>External recording</div>
-        </div>
-      </div>
-      <div style={{ fontSize: 12, color: "#64748B", wordBreak: "break-all", background: "#fff", border: "1px solid #F1F5F9", borderRadius: 8, padding: "9px 12px", marginBottom: 14, lineHeight: 1.5 }}>{src}</div>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <a href={src} target="_blank" rel="noreferrer"
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#3B82F6", color: "#fff", borderRadius: 9, fontSize: 13, fontWeight: 500, textDecoration: "none" }}>
-          Open recording ↗
-        </a>
-        <button onClick={copy}
-          style={{ padding: "8px 16px", fontSize: 13, border: "1px solid #E2E8F0", borderRadius: 9, cursor: "pointer", background: "#fff", color: copied ? "#10B981" : "#475569" }}>
-          {copied ? "✓ Copied" : "Copy link"}
-        </button>
-      </div>
-      <div style={{ marginTop: 12, fontSize: 11, color: "#94A3B8", lineHeight: 1.6 }}>
-        Supports Google Drive · Dropbox · Loom · Zoom · Otter.ai · YouTube · Direct MP3/MP4 URLs
-      </div>
-    </div>
-  );
-}
-
-// ── Main App ───────────────────────────────────────────────────────────────
+// ── Main App ──────────────────────────────────────────────────────────────
 export default function App() {
-  const [projects, setProjects] = useState(INIT_PROJECTS);
-  const [tasks, setTasks] = useState(INIT_TASKS);
-  const [recordings, setRecordings] = useState([]);
-  const [view, setView] = useState("today");
-  const [sub, setSub] = useState("list");
-  const [activeProj, setActiveProj] = useState(null);
-  const [modal, setModal] = useState(null);
-  const [qi, setQi] = useState("");
-  const [qp, setQp] = useState("");
-  const [qpri, setQpri] = useState("med");
-  const [qd, setQd] = useState(dstr(0));
-  const [aiInput, setAiInput] = useState("");
-  const [aiResp, setAiResp] = useState("");
+  const [projects, setProjects] = useState(() => load("focus_projects", DEFAULT_PROJECTS));
+  const [tasks,    setTasks]    = useState(() => load("focus_tasks",    DEFAULT_TASKS));
+  const [recordings, setRecordings] = useState(() => load("focus_recordings", []));
+  const [view,      setView]    = useState("today");
+  const [sub,       setSub]     = useState("list");
+  const [activeProj,setActiveProj] = useState(null);
+  const [modal,     setModal]   = useState(null);
+  const [qi,        setQi]      = useState("");
+  const [qp,        setQp]      = useState("");
+  const [qpri,      setQpri]    = useState("med");
+  const [qd,        setQd]      = useState(dstr(0));
+  const [aiInput,   setAiInput] = useState("");
+  const [aiResp,    setAiResp]  = useState("");
   const [aiLoading, setAiLoading] = useState(false);
-  const [editTask, setEditTask] = useState(null);
-  const [mName, setMName] = useState("");
+  const [editTask,  setEditTask] = useState(null);
+  const [mName,     setMName]   = useState("");
+
+  // ── Persist on every change ─────────────────────────────────────
+  useEffect(() => { save("focus_projects",    projects);    }, [projects]);
+  useEffect(() => { save("focus_tasks",       tasks);       }, [tasks]);
+  useEffect(() => {
+    // Don't persist blob URLs (file uploads) — they die on page reload
+    const safe = recordings.map(r => r.type === "file" ? { ...r, src: "" } : r);
+    save("focus_recordings", safe);
+  }, [recordings]);
 
   const gp = id => projects.find(p => p.id === id);
-
   function toggleDone(id) { setTasks(ts => ts.map(t => t.id === id ? { ...t, done: !t.done } : t)); }
   function quickAdd() {
     if (!qi.trim()) return;
@@ -528,7 +409,7 @@ export default function App() {
     try {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, messages: [{ role: "user", content: `You are a concise productivity coach. Open tasks: ${sum}. Question: "${prompt}". Reply in 2-3 practical sentences.` }] })
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, messages: [{ role: "user", content: `You are a concise productivity coach for a creator and entrepreneur. Open tasks: ${sum}. Question: "${prompt}". Reply in 2-3 practical sentences.` }] })
       });
       const data = await res.json();
       setAiResp(data.content?.find(b => b.type === "text")?.text || "No response.");
@@ -557,13 +438,13 @@ export default function App() {
   const viewTitle = { today: "Today", week: "This week", overview: "Big picture", scripts: "Scripts & recordings" }[view] || (gp(activeProj)?.name || "Project");
 
   function renderToday() {
-    const ov = tasks.filter(t => !t.done && t.date && t.date < dstr(0));
-    const due = tasks.filter(t => !t.done && t.date === dstr(0));
+    const ov   = tasks.filter(t => !t.done && t.date && t.date < dstr(0));
+    const due  = tasks.filter(t => !t.done && t.date === dstr(0));
     const done = tasks.filter(t => t.done && t.date === dstr(0));
     if (sub === "board") return renderBoard(tasks.filter(t => t.date === dstr(0) || (!t.done && t.date < dstr(0))));
     return (<div>
-      {ov.length > 0 && <><div style={{ ...sHead, color: "#EF4444" }}>⚠ Overdue ({ov.length})</div>{ov.map(t => <TaskCard key={t.id} task={t} projects={projects} onToggle={toggleDone} onClick={() => openTaskModal(t.id)} />)}</>}
-      {due.length > 0 && <><div style={sHead}>Due today ({due.length})</div>{due.map(t => <TaskCard key={t.id} task={t} projects={projects} onToggle={toggleDone} onClick={() => openTaskModal(t.id)} />)}</>}
+      {ov.length   > 0 && <><div style={{ ...sHead, color: "#EF4444" }}>⚠ Overdue ({ov.length})</div>{ov.map(t => <TaskCard key={t.id} task={t} projects={projects} onToggle={toggleDone} onClick={() => openTaskModal(t.id)} />)}</>}
+      {due.length  > 0 && <><div style={sHead}>Due today ({due.length})</div>{due.map(t => <TaskCard key={t.id} task={t} projects={projects} onToggle={toggleDone} onClick={() => openTaskModal(t.id)} />)}</>}
       {done.length > 0 && <><div style={{ ...sHead, color: "#94A3B8" }}>Completed ({done.length})</div>{done.map(t => <TaskCard key={t.id} task={t} projects={projects} onToggle={toggleDone} onClick={() => openTaskModal(t.id)} />)}</>}
       {!ov.length && !due.length && !done.length && <div style={empty}><div style={{ fontSize: 32, marginBottom: 8 }}>✓</div>Nothing scheduled for today</div>}
     </div>);
@@ -581,7 +462,7 @@ export default function App() {
   }
 
   function renderWeek() {
-    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
     const today = new Date();
     const cols = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(today); d.setDate(d.getDate() - today.getDay() + i);
@@ -632,7 +513,6 @@ export default function App() {
     <div style={{ fontFamily: "'DM Sans', system-ui, sans-serif", color: "#1E293B", background: "#F8FAFC", height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
       <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", flex: 1, minHeight: 0 }}>
-
         {/* Sidebar */}
         <div style={{ background: "#fff", borderRight: "1px solid #F1F5F9", display: "flex", flexDirection: "column", padding: "16px 0", overflowY: "auto" }}>
           <div style={{ padding: "0 16px 14px", fontSize: 15, fontWeight: 600, borderBottom: "1px solid #F1F5F9", marginBottom: 8, display: "flex", alignItems: "center", gap: 8, color: "#0F172A" }}>
@@ -642,10 +522,10 @@ export default function App() {
             Focus
           </div>
           {[
-            { id: "today", icon: "☀", label: "Today" },
-            { id: "week", icon: "📅", label: "This week" },
-            { id: "overview", icon: "◎", label: "Big picture" },
-            { id: "scripts", icon: "🎙", label: "Scripts", badge: recordings.length || null },
+            { id: "today",    icon: "☀",  label: "Today" },
+            { id: "week",     icon: "📅", label: "This week" },
+            { id: "overview", icon: "◎",  label: "Big picture" },
+            { id: "scripts",  icon: "🎙", label: "Scripts", badge: recordings.length || null },
           ].map(({ id, icon, label, badge }) => (
             <div key={id} onClick={() => svt(id)} style={{ padding: "8px 16px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, color: view === id ? "#1E293B" : "#64748B", fontWeight: view === id ? 600 : 400, background: view === id ? "#F8FAFC" : "transparent", borderRight: view === id ? "2px solid #3B82F6" : "2px solid transparent" }}>
               <span style={{ fontSize: 14 }}>{icon}</span>
@@ -667,7 +547,6 @@ export default function App() {
 
         {/* Main */}
         <div style={{ display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
-          {/* Topbar */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 20px", borderBottom: "1px solid #F1F5F9", background: "#fff", flexShrink: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 600, flex: 1, color: "#0F172A" }}>{viewTitle}</div>
             {!isScripts && <div style={{ display: "flex", gap: 3, background: "#F8FAFC", borderRadius: 8, padding: 3 }}>
@@ -683,7 +562,6 @@ export default function App() {
             </div>
           ) : (
             <>
-              {/* Quick capture */}
               <div style={{ display: "flex", gap: 8, padding: "12px 20px", borderBottom: "1px solid #F1F5F9", background: "#fff", flexWrap: "wrap", alignItems: "center", flexShrink: 0 }}>
                 <input value={qi} onChange={e => setQi(e.target.value)} onKeyDown={e => e.key === "Enter" && quickAdd()} placeholder="Quick capture — type a task and hit Enter" style={{ flex: 1, minWidth: 180, padding: "8px 12px", fontSize: 13, border: "1px solid #E2E8F0", borderRadius: 8, outline: "none", color: "#1E293B" }} />
                 <select value={qp} onChange={e => setQp(e.target.value)} style={{ padding: "7px 9px", fontSize: 12, border: "1px solid #E2E8F0", borderRadius: 8, color: "#64748B", background: "#fff" }}>
@@ -706,18 +584,16 @@ export default function App() {
               )}
 
               <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
-                {view === "today" && renderToday()}
-                {view === "week" && renderWeek()}
+                {view === "today"    && renderToday()}
+                {view === "week"     && renderWeek()}
                 {view === "overview" && renderOverview()}
-                {view === "project" && renderProject()}
+                {view === "project"  && renderProject()}
               </div>
 
               <div style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", background: "#fff", display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
                 <span style={{ fontSize: 16, color: "#94A3B8" }}>✦</span>
-                <input value={aiInput} onChange={e => setAiInput(e.target.value)} onKeyDown={e => e.key === "Enter" && runAI()} placeholder="Ask AI: what should I focus on? reschedule overdue tasks? summarize my week…" style={{ flex: 1, padding: "8px 12px", fontSize: 13, border: "1px solid #E2E8F0", borderRadius: 8, outline: "none", color: "#1E293B" }} />
-                <button onClick={runAI} disabled={aiLoading} style={{ padding: "8px 14px", fontSize: 13, border: "none", borderRadius: 8, cursor: "pointer", background: "#3B82F6", color: "#fff", fontWeight: 500 }}>
-                  {aiLoading ? "…" : "Ask ↗"}
-                </button>
+                <input value={aiInput} onChange={e => setAiInput(e.target.value)} onKeyDown={e => e.key === "Enter" && runAI()} placeholder="Ask AI: what should I focus on? summarize my week? prioritize today…" style={{ flex: 1, padding: "8px 12px", fontSize: 13, border: "1px solid #E2E8F0", borderRadius: 8, outline: "none", color: "#1E293B" }} />
+                <button onClick={runAI} disabled={aiLoading} style={{ padding: "8px 14px", fontSize: 13, border: "none", borderRadius: 8, cursor: "pointer", background: "#3B82F6", color: "#fff", fontWeight: 500 }}>{aiLoading ? "…" : "Ask ↗"}</button>
               </div>
             </>
           )}
@@ -743,11 +619,11 @@ export default function App() {
         <Modal onClose={() => { setModal(null); setEditTask(null); }}>
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>{modal.id ? "Edit task" : "New task"}</div>
           {[
-            ["Title", <input key="t" autoFocus value={editTask.title} onChange={e => setEditTask(et => ({ ...et, title: e.target.value }))} style={inp} />],
-            ["Project", <select key="p" value={editTask.project} onChange={e => setEditTask(et => ({ ...et, project: e.target.value }))} style={inp}>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>],
+            ["Title",    <input key="t" autoFocus value={editTask.title} onChange={e => setEditTask(et => ({ ...et, title: e.target.value }))} style={inp} />],
+            ["Project",  <select key="p" value={editTask.project} onChange={e => setEditTask(et => ({ ...et, project: e.target.value }))} style={inp}>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>],
             ["Due date", <input key="d" type="date" value={editTask.date} onChange={e => setEditTask(et => ({ ...et, date: e.target.value }))} style={inp} />],
             ["Priority", <select key="pr" value={editTask.pri} onChange={e => setEditTask(et => ({ ...et, pri: e.target.value }))} style={inp}><option value="high">High</option><option value="med">Medium</option><option value="low">Low</option></select>],
-            ["Notes", <textarea key="n" value={editTask.notes} onChange={e => setEditTask(et => ({ ...et, notes: e.target.value }))} rows={3} style={{ ...inp, resize: "vertical" }} />],
+            ["Notes",    <textarea key="n" value={editTask.notes} onChange={e => setEditTask(et => ({ ...et, notes: e.target.value }))} rows={3} style={{ ...inp, resize: "vertical" }} />],
           ].map(([label, el]) => (
             <div key={label} style={{ marginBottom: 11 }}>
               <label style={{ display: "block", fontSize: 12, color: "#64748B", marginBottom: 5 }}>{label}</label>
