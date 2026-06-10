@@ -617,15 +617,14 @@ export default function App() {
             Focus
           </div>
           {[
-            { id: "today",    icon: "☀",  label: "Today" },
-            { id: "week",     icon: "📅", label: "This week" },
-            { id: "overview", icon: "◎",  label: "Big picture" },
-            { id: "scripts",  icon: "🎙", label: "Scripts" },
-            
-            { id: "finance"   icon: "🏦", label: "Payments" },
-            { id: "convert" icon: "➡️", label: "Convert" },
-            { id: "vault"     icon: "🔐", label: "Storage" },
-            { id: "notes"     icon: "📝", label: "Notes" },
+            { id: "today",    icon: "🚨",  label: "Today" },
+            { id: "week",     icon: "📅",  label: "This week" },
+            { id: "overview", icon: "🖼️",  label: "Big picture" },
+            { id: "scripts",  icon: "🎙",  label: "Scripts" },
+            { id: "finance",  icon: "🏦",  label: "Payments" },
+            { id: "convert",  icon: "➡️",  label: "Convert" },
+            { id: "vault",    icon: "🔐",  label: "Storage" },
+            { id: "notes",    icon: "📝",  label: "Notes" },
 
           ].map(({ id, icon, label, badge }) => (
             <div key={id} onClick={() => svt(id)} style={{ padding: "8px 16px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, color: view === id ? "#1E293B" : "#64748B", fontWeight: view === id ? 600 : 400, background: view === id ? "#F8FAFC" : "transparent", borderRight: view === id ? "2px solid #3B82F6" : "2px solid transparent" }}>
