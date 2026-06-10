@@ -362,6 +362,101 @@ function ScriptsView({ recordings, setRecordings }) {
     </div>
   );
 }
+function NotesView() {
+ const [notes,setNotes] = useState(
+   localStorage.getItem("stv_notes") || ""
+ );
+
+ useEffect(()=>{
+   localStorage.setItem("stv_notes",notes);
+ },[notes]);
+
+ return (
+   <div style={{padding:20}}>
+     <h2>STV Notes Hub</h2>
+
+     <textarea
+       value={notes}
+       onChange={(e)=>setNotes(e.target.value)}
+       style={{
+         width:"100%",
+         height:"70vh",
+         padding:15,
+         borderRadius:12
+       }}
+     />
+   </div>
+ );
+}
+
+function FinanceView(){
+ return(
+   <div style={{padding:20}}>
+     <h2>Finance Center</h2>
+
+     <div style={{
+       display:"grid",
+       gap:20,
+       maxWidth:500
+     }}>
+
+       <a
+         href="https://checkout.square.site/merchant/ML0M8XESVEH6E/checkout/4AVYTSOEF3EEXPTCRK52KBJ7"
+         target="_blank"
+         rel="noreferrer"
+       >
+         Square Payment $100
+       </a>
+
+       <a
+         href="https://www.paypal.com/ncp/payment/429N8UGKBX6XU"
+         target="_blank"
+         rel="noreferrer"
+       >
+         PayPal Payment $30
+       </a>
+
+     </div>
+   </div>
+ );
+}
+
+function ConverterView(){
+ return(
+   <iframe
+     src="https://fairefaretravels.github.io/Stv-converter/"
+     width="100%"
+     height="900"
+     style={{
+       border:"none"
+     }}
+     title="STV Converter"
+   />
+ );
+}
+
+function VaultView(){
+ return(
+   <div style={{padding:20}}>
+     <h2>Upload Files</h2>
+
+     <form
+       action="https://formsubmit.co/houseofmedia.marketing@gmail.com"
+       method="POST"
+       encType="multipart/form-data"
+     >
+       <input
+         type="file"
+         name="attachment"
+       />
+
+       <button type="submit">
+         Send File
+       </button>
+     </form>
+   </div>
+ );
+}
 
 // ── Main App ──────────────────────────────────────────────────────────────
 export default function App() {
@@ -525,7 +620,13 @@ export default function App() {
             { id: "today",    icon: "☀",  label: "Today" },
             { id: "week",     icon: "📅", label: "This week" },
             { id: "overview", icon: "◎",  label: "Big picture" },
-            { id: "scripts",  icon: "🎙", label: "Scripts", badge: recordings.length || null },
+            { id: "scripts",  icon: "🎙", label: "Scripts" },
+            
+            { id: "finance"   icon: "🏦", label: "Payments" },
+            { id: "convert" icon: "➡️", label: "Convert" },
+            { id: "vault"     icon: "🔐", label: "Storage" },
+            { id: "notes"     icon: "📝", label: "Notes" },
+
           ].map(({ id, icon, label, badge }) => (
             <div key={id} onClick={() => svt(id)} style={{ padding: "8px 16px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, color: view === id ? "#1E293B" : "#64748B", fontWeight: view === id ? 600 : 400, background: view === id ? "#F8FAFC" : "transparent", borderRight: view === id ? "2px solid #3B82F6" : "2px solid transparent" }}>
               <span style={{ fontSize: 14 }}>{icon}</span>
@@ -588,6 +689,11 @@ export default function App() {
                 {view === "week"     && renderWeek()}
                 {view === "overview" && renderOverview()}
                 {view === "project"  && renderProject()}
+                {view === "notes"    && <NotesView />}
+                {view === "vault"    && <VaultView />
+                {view === "finance"  && <FinanceView />}
+                {view === "convert"  && <ConverterView />}
+
               </div>
 
               <div style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", background: "#fff", display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
