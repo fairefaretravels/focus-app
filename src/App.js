@@ -689,7 +689,7 @@ export default function App() {
                 {view === "overview" && renderOverview()}
                 {view === "project"  && renderProject()}
                 {view === "notes"    && <NotesView />}
-                {view === "vault"    && <VaultView />
+                {view === "vault"    && <VaultView />}
                 {view === "finance"  && <FinanceView />}
                 {view === "convert"  && <ConverterView />}
 
