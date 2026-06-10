@@ -435,27 +435,36 @@ function ConverterView(){
  );
 }
 
-function VaultView(){
- return(
-   <div style={{padding:20}}>
-     <h2>Upload Files</h2>
+function VaultView() {
+  return (
+    <div style={{ padding: 20 }}>
+      <h2>Upload Files</h2>
 
-     <form
-       action="https://formsubmit.co/houseofmedia.marketing@gmail.com"
-       method="POST"
-       encType="multipart/form-data"
-     >
-       <input
-         type="file"
-         name="attachment"
-       />
+      <form
+        action="https://formsubmit.co/houseofmedia.marketing@gmail.com"
+        method="POST"
+        encType="multipart/form-data"
+      >
+        <input
+          type="hidden"
+          name="_subject"
+          value="New STV Upload"
+        />
 
-       <button type="submit">
-         Send File
-       </button>
-     </form>
-   </div>
- );
+        <input
+          type="file"
+          name="attachment"
+          required
+        />
+
+        <br /><br />
+
+        <button type="submit">
+          Upload File
+        </button>
+      </form>
+    </div>
+  );
 }
 
 // ── Main App ──────────────────────────────────────────────────────────────
