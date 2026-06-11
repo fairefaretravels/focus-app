@@ -393,37 +393,45 @@ function ConverterView() {
 // ── Vault / Storage View (fixed: no <form>, uses fetch + FormData) ─────────
 function VaultView() {
   const [file, setFile] = useState(null);
-  const [status, setStatus] = useState("idle"); // idle | sending | success | error
-  const fileRef = useRef(null);
+  const [sent, setSent] = useState(false);
 
-  function handleChange(e) {
+  function handleFile(e) {
     setFile(e.target.files[0] || null);
-    setStatus("idle");
+    setSent(false);
   }
 
-  async function sendFile() {
+  function sendFile() {
     if (!file) return;
-    setStatus("sending");
-    try {
-      const fd = new FormData();
-      fd.append("attachment", file);
-      fd.append("_subject", `File upload: ${file.name}`);
-      // formsubmit.co expects a POST with the form fields
-      const res = await fetch("https://formsubmit.co/ajax/houseofmedia.marketing@gmail.com", {
-        method: "POST",
-        body: fd,
-      });
-      if (res.ok) {
-        setStatus("success");
-        setFile(null);
-        if (fileRef.current) fileRef.current.value = "";
-      } else {
-        setStatus("error");
-      }
-    } catch {
-      setStatus("error");
-    }
+    const subject = encodeURIComponent("File upload: " + file.name);
+    const body = encodeURIComponent(
+      "File attached: " + file.name + "\nSize: " + (file.size / 1024).toFixed(1) + " KB\n\n(Attach the file manually from your device)"
+    );
+    window.open(
+      "mailto:houseofmedia.marketing@gmail.com?subject=" + subject + "&body=" + body
+    );
+    setSent(true);
   }
+
+  return (
+    <div style={{ padding: 20 }}>
+      <h2>Upload Files</h2>
+      <input type="file" onChange={handleFile} style={{ display: "block", marginBottom: 12 }} />
+      {file && (
+        <div style={{ marginBottom: 12, fontSize: 13, color: "#475569" }}>
+          Selected: {file.name} ({(file.size / 1024).toFixed(1)} KB)
+        </div>
+      )}
+      <button
+        onClick={sendFile}
+        disabled={!file}
+        style={{ padding: "8px 16px", background: "#3B82F6", color: "#fff", border: "none", borderRadius: 8, cursor: file ? "pointer" : "not-allowed", opacity: file ? 1 : 0.5 }}
+      >
+        Send File
+      </button>
+      {sent && <div style={{ marginTop: 10, fontSize: 13, color: "#10B981" }}>✓ Email client opened — attach the file and send.</div>}
+    </div>
+  );
+}
 
   const statusMsg = {
     sending: { text: "Sending…", color: "#3B82F6" },
